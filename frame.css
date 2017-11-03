@@ -37,3 +37,7 @@
     left:0;
     cursor:pointer;
 }
+
+.code-highlight {
+    color: red;
+}

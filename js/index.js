@@ -87,12 +87,37 @@ var jsEditor;
         BABYLON.Engine.ShadersRepository = "/src/Shaders/";
 
         if (location.href.indexOf("Stable") !== -1) {
-            setToMultipleID("currentVersion", "innerHTML", "Version: Stable");
+ //           setToMultipleID("currentVersion", "innerHTML", "Version: Stable");
         } else {
-            setToMultipleID("currentVersion", "innerHTML", "Version: Latest");
+ //           setToMultipleID("currentVersion", "innerHTML", "Version: Latest");
         }
 
-        var loadScript = function (scriptURL, title) {
+        var code = "";
+        
+        var loadCode = function (codeURL, title) {
+            var xhr = new XMLHttpRequest();       
+            xhr.open('GET', codeURL, true);
+        
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        xhr.onreadystatechange = null;
+                        blockEditorChange = true;
+                        code = xhr.responseText;                        
+                        blockEditorChange = false;
+                        compileAndRun();
+        
+                        setToMultipleID("currentScript", "innerHTML", title);
+       
+                        currentSnippetToken = null;
+                    }
+                }
+            };
+        
+            xhr.send(null);
+        };
+
+        var loadScript = function (scriptURL, codeURL, title, lineStyles) {          
             var xhr = new XMLHttpRequest();
 
             xhr.open('GET', scriptURL, true);
@@ -104,12 +129,20 @@ var jsEditor;
                         blockEditorChange = true;
                         jsEditor.setValue(xhr.responseText);
                         jsEditor.setPosition({ lineNumber: 0, column: 0 });
-                        blockEditorChange = false;
-                        compileAndRun();
+                        
+                        var endLineNm = jsEditor.getModel()._lines.length; 
 
-                        setToMultipleID("currentScript", "innerHTML", title);
+                        var decorationStyles = new Array();
+                        decorationStyles.push({ range: new monaco.Range(1,1,endLineNm,1), options: { isWholeLine: true, inlineClassName: 'code-transparent' }});
+                        for(var i = 0; i < lineStyles.length; i +=2) {
+                            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, linesDecorationsClassName: 'myLineDecoration' }});
+                            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, className: 'code-back-highlight' }});
+                            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, inlineClassName: 'code-highlight' }});
+                        }
 
-                        currentSnippetToken = null;
+                        
+                        var lineDecorations = jsEditor.deltaDecorations([], decorationStyles);
+                        loadCode(codeURL, title);
                     }
                 }
             };
@@ -122,13 +155,38 @@ var jsEditor;
                 index = 1;
             }
 
-            var script = scripts[index - 1].trim();
-            loadScript("scripts/" + script + ".js", script);
-        }
+            var decoration = decorations[index - 1];          
+            var script = scripts[index - 1].trim();           
+            loadScript("scripts/" + script + ".js", "codes/" + script + ".js", script, decoration);
+        }	
 
         var onScriptClick = function (evt) {
             loadScriptFromIndex(evt.target.scriptLinkIndex);
         };
+
+        var decorationsList = new Array();
+        var decorations = new Array();
+
+        var loadDecorationsList = function () {
+            var xhr = new XMLHttpRequest();
+
+            xhr.open('GET', 'scripts/decorations.txt', true);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        decorationsList = xhr.responseText.split("\n");
+                        decorations = [];
+                        for(var i = 0; i < decorationsList.length; i++) {
+                            decorations.push(decorationsList[i].split(","));
+                        }
+                        console.log("DEC",decorations);
+                    }
+                }
+            }
+
+            xhr.send(null);
+        }
 
         var loadScriptsList = function () {
             var xhr = new XMLHttpRequest();
@@ -170,12 +228,12 @@ var jsEditor;
                                 if (!isNaN(index)) {
                                     loadScriptFromIndex(index);
                                 } else if (query.indexOf("=") === -1) {
-                                    loadScript("scripts/" + query + ".js", query);
+                                    loadScript("scripts/" + query + ".js", "codess/" + query + ".js", query, decoration);
                                 } else {
-                                    loadScript("scripts/basic scene.js", "Basic scene");
+                                    loadScript("scripts/basic scene.js", "codes/basic scene.js", "Basic scene", [7, 10, 15, 20]);
                                 }
                             } else {
-                                loadScript("scripts/basic scene.js", "Basic scene");
+                                loadScript("scripts/basic scene.js", "codes/basic scene.js", "Basic scene", [7, 10, 15, 20]);
                             }
                         }
 
@@ -376,7 +434,7 @@ var jsEditor;
                     fpsLabel.innerHTML = engine.getFps().toFixed() + " fps";
                 });
 
-                var code = jsEditor.getValue();
+                //var code = jsEditor.getValue();
                 var scene;
                 if (code.indexOf("createScene") !== -1) { // createScene
                     eval(code);
@@ -451,6 +509,7 @@ var jsEditor;
 
         // Load scripts list
         loadScriptsList();
+        loadDecorationsList();
 
         // Zip
         var addContentToZip = function (zip, name, url, replace, buffer, then) {
@@ -976,7 +1035,6 @@ var jsEditor;
     xhr.open('GET', "babylon.d.txt", true);
 
     xhr.onreadystatechange = function () {
-console.log("in", xhr.readyState, xhr.status);        
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 require.config({ paths: { 'vs': 'node_modules/monaco-editor/min/vs' } });
@@ -984,7 +1042,7 @@ console.log("in", xhr.readyState, xhr.status);
                     monaco.languages.typescript.javascriptDefaults.addExtraLib(xhr.responseText, 'babylon.d.ts');
 
                     jsEditor = monaco.editor.create(document.getElementById('jsEditor'), editorOptions);
-console.log("here");
+
                     run();
                 });
             }

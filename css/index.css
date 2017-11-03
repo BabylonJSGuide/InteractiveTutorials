@@ -97,7 +97,7 @@ body {
 }
 
 .wrapper #jsEditor.light {
-    background-color: white;
+    background-color: #999999;
 }
 .wrapper #jsEditor.dark {
     background-color: #1e1e1e;
@@ -161,11 +161,13 @@ body {
     height: 40px;
     margin: 0 15px 0 15px;
     display: inline-block;
+    visibility: hidden;
 }
 .navbar .category.right {
     position: absolute;
     right: 0;
     top: 0;
+    visibility: visible;
 }
 .button {
     display: inline-block;
@@ -469,6 +471,10 @@ body {
     margin-bottom: 20px;
     font-family: "Montserrat";
     padding:5px;
+}
+
+.code-highlight {
+    color: red;
 }
 
 /*Media queries*/
