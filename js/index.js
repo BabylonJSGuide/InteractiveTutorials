@@ -32,7 +32,7 @@ var jsEditor;
         roundedSelection: true,
         automaticLayout: true,
         scrollBeyondLastLine: false,
-        readOnly: false,
+        readOnly: true,
         theme: "vs",
         contextmenu: false,
         folding: true,
@@ -55,6 +55,58 @@ var jsEditor;
         '.navbarBottom',
         '.navbarBottom .links .link',
         '.save-message'];
+
+    /*****************************************************************/
+    //Editor Manipulation
+     
+    
+    var decorationStyles = new Array();
+    var decorations = new Array();
+
+    var clearEditorLines = function(lineStyles) {
+        decorationsStyles = [];
+        decorations = [];
+        
+        for(var i = 0; i < lineStyles.length; i +=2) {          
+            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, linesDecorationsClassName: 'myLineDecorationOff' }});
+            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, className: 'code-back-transparent' }});
+            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, inlineClassName: 'code-transparent' }});
+        }
+
+        decorations = jsEditor.deltaDecorations(decorations, decorationStyles);
+    }
+
+    var updateEditorLines = function (lineStyles) {
+        decorationsStyles = [];
+        decorations = [];
+
+        var endLineNm = jsEditor.getModel()._lines.length;
+        decorationStyles.push({ range: new monaco.Range(1,1,endLineNm,1), options: { isWholeLine: true, inlineClassName: 'code-transparent' }});
+        
+        for(var i = 0; i < lineStyles.length; i +=2) {          
+            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, linesDecorationsClassName: 'myLineDecoration' }});
+            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, className: 'code-back-highlight' }});
+            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, inlineClassName: 'code-highlight' }});
+        }
+    
+        decorations = jsEditor.deltaDecorations(decorations, decorationStyles);
+    }
+
+    var changeEditorLines = function(lines, lineStyles) {   
+        jsEditor.executeEdits("", [
+            { range: new monaco.Range(parseInt(lineStyles[0]), 1, parseInt(lineStyles[1]), 100000), text: lines}
+       ]);
+    }
+
+    var editOn = function() {
+        jsEditor.updateOptions({readOnly: false});
+    }
+
+    var editOff = function() {
+        jsEditor.updateOptions({readOnly: true});
+    }
+
+    /****************************************************************/         
 
     var run = function () {
         var blockEditorChange = false;
@@ -91,6 +143,7 @@ var jsEditor;
         } else {
  //           setToMultipleID("currentVersion", "innerHTML", "Version: Latest");
         }
+       
 
         var code = "";
         
@@ -117,7 +170,7 @@ var jsEditor;
             xhr.send(null);
         };
 
-        var loadScript = function (scriptURL, codeURL, title, lineStyles) {          
+        var loadScript = function (scriptURL, codeURL, title) {          
             var xhr = new XMLHttpRequest();
 
             xhr.open('GET', scriptURL, true);
@@ -129,19 +182,7 @@ var jsEditor;
                         blockEditorChange = true;
                         jsEditor.setValue(xhr.responseText);
                         jsEditor.setPosition({ lineNumber: 0, column: 0 });
-                        
-                        var endLineNm = jsEditor.getModel()._lines.length; 
-
-                        var decorationStyles = new Array();
-                        decorationStyles.push({ range: new monaco.Range(1,1,endLineNm,1), options: { isWholeLine: true, inlineClassName: 'code-transparent' }});
-                        for(var i = 0; i < lineStyles.length; i +=2) {
-                            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, linesDecorationsClassName: 'myLineDecoration' }});
-                            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, className: 'code-back-highlight' }});
-                            decorationStyles.push({ range: new monaco.Range(parseInt(lineStyles[i]),1,parseInt(lineStyles[i + 1]),1), options: { isWholeLine: true, inlineClassName: 'code-highlight' }});
-                        }
-
-                        
-                        var lineDecorations = jsEditor.deltaDecorations([], decorationStyles);
+                       
                         loadCode(codeURL, title);
                     }
                 }
@@ -154,39 +195,14 @@ var jsEditor;
             if (index === 0) {
                 index = 1;
             }
-
-            var decoration = decorations[index - 1];          
+        
             var script = scripts[index - 1].trim();           
-            loadScript("scripts/" + script + ".js", "codes/" + script + ".js", script, decoration);
+            loadScript("scripts/" + script + ".js", "codes/" + script + ".js", script);
         }	
 
         var onScriptClick = function (evt) {
             loadScriptFromIndex(evt.target.scriptLinkIndex);
         };
-
-        var decorationsList = new Array();
-        var decorations = new Array();
-
-        var loadDecorationsList = function () {
-            var xhr = new XMLHttpRequest();
-
-            xhr.open('GET', 'scripts/decorations.txt', true);
-
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        decorationsList = xhr.responseText.split("\n");
-                        decorations = [];
-                        for(var i = 0; i < decorationsList.length; i++) {
-                            decorations.push(decorationsList[i].split(","));
-                        }
-                        console.log("DEC",decorations);
-                    }
-                }
-            }
-
-            xhr.send(null);
-        }
 
         var loadScriptsList = function () {
             var xhr = new XMLHttpRequest();
@@ -230,10 +246,10 @@ var jsEditor;
                                 } else if (query.indexOf("=") === -1) {
                                     loadScript("scripts/" + query + ".js", "codess/" + query + ".js", query, decoration);
                                 } else {
-                                    loadScript("scripts/basic scene.js", "codes/basic scene.js", "Basic scene", [7, 10, 15, 20]);
+                                    loadScript("scripts/rotation.js", "codes/rotation.js", "Rotation", [7, 10, 15, 20]);
                                 }
                             } else {
-                                loadScript("scripts/basic scene.js", "codes/basic scene.js", "Basic scene", [7, 10, 15, 20]);
+                                loadScript("scripts/rotation.js", "codes/rotation.js", "Rotation", [7, 10, 15, 20]);
                             }
                         }
 
@@ -260,8 +276,8 @@ var jsEditor;
 
         var createNewScript = function () {
             // check if checked is on
-            let iCanClear = checkSafeMode("Are you sure you want to create a new playground?");
-            if (!iCanClear) return;
+           // let iCanClear = checkSafeMode("Are you sure you want to create a new playground?");
+            //if (!iCanClear) return;
             location.hash = "";
             currentSnippetToken = null;
             currentSnippetTitle = null;
@@ -276,8 +292,8 @@ var jsEditor;
 
         var clear = function () {
             // check if checked is on
-            let iCanClear = checkSafeMode("Are you sure you want to clear the playground?");
-            if (!iCanClear) return;
+           // let iCanClear = checkSafeMode("Are you sure you want to clear the playground?");
+           // if (!iCanClear) return;
             location.hash = "";
             currentSnippetToken = null;
             jsEditor.setValue('');
@@ -509,7 +525,6 @@ var jsEditor;
 
         // Load scripts list
         loadScriptsList();
-        loadDecorationsList();
 
         // Zip
         var addContentToZip = function (zip, name, url, replace, buffer, then) {

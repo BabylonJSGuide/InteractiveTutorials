@@ -1,24 +1,29 @@
 # InteractiveTutorials
-Using a version of the BJS playground to produce tutorials.
+Using a version of the BJS Playground to produce tutorials. This version is not to be seen as a replacement for the Playground. The Playground files have be copied not forked and have been adapted. 
 
-## Reverse Engineer Code
+Features not being used have been commented out rather than deleted so that if required they can easily be restored.
 
-### Events
-Events are set using `setToMultipleID = function (id, thingToDo, param)` line 5 index.js
+## Events
+Events are set using `setToMultipleID = function (id, thingToDo, param)` line 5 js/index.js
 
 button id consists of name and size, done for all sizes.
 
-### Compile and Run
+## Compile and Run
 
-The editor section contains jsEditor whihc can be manipulated and styled by the monaco engine, code as text can be extracted using `jsEngine.getValue();`
+In the original playground code the editor section contains jsEditor which can be manipulated and styled by the monaco engine, code as text is extracted using `jsEngine.getValue();` and eval is applied to run the code.
 
-the current script in the jsEditor is loaded using `loadScript` function line 95 index.js 
+The current script in the jsEditor is loaded using `loadScript` function line 95 index.js.
 
-Also needed are the decoration rules and the hidden scripts for the tutorials.
+In this adaptation the text of the code for the editor is loaded from files in the **scripts** folder, the actual code run is in the **codes** folder. Any editing by the user of the code in the editor will not affect the running code but will affect the decoration of the code in the editor so readOnly editor option is set to true.
 
-two new folders and two new functions needed.
 
 ## Changes to Display
+
+User choices have been limited.
+
+Decoration of the text in the editor is controlled in js/index.js lines 59 to 110. The css code linked to this is at the end of node_modules/min/vs/editor/editor.main.css
+
+Issue - when opacity is set to 1 cannot return it to 0.5.
 
 Only Button to display is Scene Choice.
 
